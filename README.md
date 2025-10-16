@@ -9,6 +9,9 @@ are being weird) https://fadden.github.io/HGRTool.
 
 A brief [demo video](https://youtu.be/Cr55oV_MjX4) is also available.
 
+This is not meant to be the future of graphics editing.  This is primarily a
+vehicle for me to play with JavaScript+HTML+CSS.
+
 ## Source Code and License ##
 
 The program was written in JavaScript, HTML, and CSS.  It was developed with

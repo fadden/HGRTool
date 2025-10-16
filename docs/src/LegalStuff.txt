@@ -1,0 +1,5 @@
+HGR Tool is an open-source project that uses the Apache 2 license; see the LICENSE file for details.  A few things used here were developed separately:
+
+ * The 108-entry hi-res color palette comes from code in The Graphics Magician, copyright 1984 by Penguin Software.
+ * Various button icons come from the Font Awesome project.  Only icons in the "free" set were used.
+ * The code for drawing ellipses is by Alois Zingl.  MIT license.

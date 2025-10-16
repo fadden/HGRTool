@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <link rel="stylesheet" href="editor.css"/>
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+
+    <script type="module" src="./image-editor.js"></script>
+
+    <title>HGR Tool Image Editor</title>
+</head>
+
+<body>
+<div class="gridwrapper">
+    <div id="topbar" class="tool-area">
+        <button class="icon-button" id="btn-new">
+            <i class="fa-solid fa-file-circle-plus"></i>New
+            <span class="icon-button-tooltip">Create blank image.</span>
+        </button>
+        <button class="icon-button" id="btn-open">
+            <i class="fa-solid fa-upload"></i>Open
+            <span class="icon-button-tooltip">Open one or more images.</span>
+        </button>
+        <button class="icon-button" id="btn-save">
+            <i class="fa-solid fa-floppy-disk"></i>Save
+            <span class="icon-button-tooltip">Save image (Ctrl+S).</span>
+        </button>
+        <button class="icon-button" id="btn-save-as">
+            <i class="fa-solid fa-file-export"></i>Save As
+            <span class="icon-button-tooltip">Save image with a new name.</span>
+        </button>
+        <button class="icon-button" id="btn-close">
+            <i class="fa-solid fa-circle-xmark"></i>Close
+            <span class="icon-button-tooltip">Close image.</span>
+        </button>
+        <div class="top-spacer"></div>
+        <button class="icon-button" id="btn-cut">
+            <i class="fa-solid fa-scissors"></i>Cut
+            <span class="icon-button-tooltip">Cut region (Ctrl+X).</span>
+        </button>
+        <button class="icon-button" id="btn-copy">
+            <i class="fa-solid fa-copy"></i>Copy
+            <span class="icon-button-tooltip">Copy region (Ctrl+C).</span>
+        </button>
+        <button class="icon-button" id="btn-paste">
+            <i class="fa-solid fa-paste"></i>Paste
+            <span class="icon-button-tooltip">Paste clipping (Ctrl+V or Enter).</span>
+        </button>
+        <button class="icon-button" id="btn-undo">
+            <i class="fa-solid fa-rotate-left"></i>Undo
+            <span class="icon-button-tooltip">Undo action (Ctrl+Z).</span>
+        </button>
+        <button class="icon-button" id="btn-redo">
+            <i class="fa-solid fa-rotate-right"></i>Redo
+            <span class="icon-button-tooltip">Redo action (Ctrl+Y).</span>
+        </button>
+    </div>
+
+    <div id="rightbar" class="tool-area">
+        <div class="right-header">Images</div>
+        <!-- generated -->
+        <!-- <button class="right-pic" id="thumb0">
+            <canvas class="thumbnail-canvas"></canvas>
+        </button> -->
+    </div>
+
+    <div id="bottombar" class="tool-area">
+        <div id="bottom-posn">
+            cursor <span class="mono-info">
+                <output id="xposn">-</output>,<output id="yposn">-</output>
+            </span>
+        </div>
+        <div id="bottom-rect-info">
+            rect <span class="mono-info">
+                <output id="rect-left">123</output>,<output id="rect-top">456</output> -
+                <output id="rect-right">321</output>,<output id="rect-bottom">654</output>
+            </span>
+            <br>
+            size <span class="mono-info">
+                <output id="rect-width">111</output>x<output id="rect-height">222</output>
+            </span>
+        </div>
+        <div id="bottom-scale">
+            <form>
+                <input type="range" id="pictureScaleSlider" min="0" max="7">
+                <label for="pictureScaleSlider">scale=</label><output id="pictureScale">1</output>x
+            </form>
+        </div>
+        <div id="bottom-mono">
+            <input type="checkbox" id="useMono"/>
+            <label for="useMono">Monochrome</label>
+        </div>
+        <div id="bottom-color">
+            Pattern
+            <button id="curcolor-button">
+                <canvas id="curcolor-canvas"></canvas>
+            </button>
+        </div>
+        <div id="bottom-panner">
+            <canvas class="panner-canvas" id="panner">Scroll me</canvas>
+        </div>
+    </div>
+
+    <div id="leftbar" class="tool-area">
+        <div class="left-header1">Tools</div>
+        <button class="icon-button" id="btn-pan">
+            <i class="fa-solid fa-up-down-left-right"></i>Pan
+        </button>
+        <button class="icon-button" id="btn-select-rect">
+            <i class="fa-solid fa-object-group"></i>Select
+        </button>
+        <button class="icon-button" id="btn-scribble">
+            <i class="fa-solid fa-pencil"></i>Scribble
+        </button>
+        <button class="icon-button" id="btn-line">
+            <i class="fa-solid fa-lines-leaning"></i>Line
+        </button>
+        <button class="icon-button" id="btn-stroke-rect">
+            <i class="fa-solid fa-pen-to-square"></i>Rect Frame
+        </button>
+        <button class="icon-button" id="btn-fill-rect">
+            <i class="fa-solid fa-square-full"></i>Rect
+        </button>
+        <button class="icon-button" id="btn-stroke-ellipse">
+            <i class="fa-solid fa-circle-notch"></i>Ellipse Frame
+        </button>
+        <button class="icon-button" id="btn-fill-ellipse">
+            <i class="fa-solid fa-circle"></i>Ellipse
+        </button>
+        <button class="icon-button" id="btn-text">
+            <i class="fa-solid fa-keyboard"></i>Text
+        </button>
+        <button class="icon-button" id="btn-flood-fill">
+            <i class="fa-solid fa-fill-drip"></i>Fill
+        </button>
+        <div class="left-header2">Configuration</div>
+        <button class="icon-button" id="btn-choose-color">
+            <i class="fa-solid fa-palette"></i>Choose Color
+        </button>
+        <button class="icon-button" id="btn-choose-font">
+            <i class="fa-solid fa-font"></i>Choose Font
+        </button>
+        <button class="icon-button" id="btn-choose-style">
+            <i class="fa-solid fa-grip-lines-vertical"></i>Line Width
+        </button>
+        <button class="icon-button" id="btn-settings">
+            <i class="fa-solid fa-gear"></i>Settings
+        </button>
+        <button class="icon-button" id="btn-about">
+            <i class="fa-solid fa-question"></i>About
+        </button>
+    </div>
+
+    <div id="middle">
+        <canvas class="picture-canvas" id="edit-surface">Edit me</canvas>
+    </div>
+</div>
+
+<!-- color picker for standard hi-res -->
+<dialog id="color-picker-hgr" class="modal-dialog">
+    <div id="color-picker-wrapper" class="modal-dialog-wrapper">
+        <div class="cpd-color-header">Solid Colors</div>
+        <div class="cpd-dither-header">Dither Patterns</div>
+        <div id="hgr-color-body"><!--generated--></div>
+        <div id="hgr-dither-body"><!--generated--></div>
+        <button id="hgr-picker-close" class="modal-close">Close</button>
+    </div>
+</dialog>
+
+<!-- style picker, currently just has line styles -->
+<dialog id="style-picker" class="modal-dialog">
+    <div id="style-picker-wrapper" class="modal-dialog-wrapper">
+        <div>
+            <button id="style-stroke-thin" class="style-button">Thin</button>
+        </div>
+        <div>
+            <button id="style-stroke-thick" class="style-button">Thick</button>
+        </div>
+        <div>
+            <button id="style-stroke-applesoft" class="style-button">Applesoft Thin</button>
+        </div>
+        <div class="style-picker-close-w">
+            <button id="style-picker-close" class="modal-close">Close</button>
+        </div>
+    </div>
+</dialog>
+
+<!-- font picker dialog -->
+<dialog id="font-picker" class="modal-dialog">
+    <div id="font-picker-wrapper" class="modal-dialog-wrapper">
+        <div class="fp-title">
+            Choose Font
+        </div>
+        <div class="fp-select-bitmap">
+            <button id="fp-use-bitmap" class="style-button">Bitmap<br/>font</button>
+        </div>
+        <div class="fp-bitmap-params">
+            (uses default hi-res font)
+        </div>
+        <div class="fp-select-browser">
+            <button id="fp-use-browser" class="style-button">Browser<br/>font</button>
+        </div>
+        <div class="fp-browser-params">
+            <div id="fp-font-style">
+                <label for="browser-font-style">Style (blank ok):</label>
+                <input type="text" id="browser-font-style" class="input-field"
+                maxlength="50" autocomplete="off"/>
+            </div>
+            <div id="fp-font-family">
+                <label for="browser-font-family">Font family:</label>
+                <input type="text" id="browser-font-family" class="input-field"
+                maxlength="50" autocomplete="off"/>
+            </div>
+            <div id="fp-font-size">
+                <label for="browser-font-size">Size (in px, 4-200):</label>
+                <input type="number" id="browser-font-size"  class="input-field"
+                    min="4" max="200" autocomplete="off"/>
+            </div>
+        </div>
+        <div class="fp-ok">
+            <button id="font-picker-ok" class="modal-close">OK</button>
+        </div>
+    </div>
+</dialog>
+
+<!-- text render entry field -->
+<dialog id="text-entry" class="modal-dialog">
+    <div id="text-entry-wrapper" class="modal-dialog-wrapper">
+        <div>
+            <label for="text-entry-input">Enter text:</label>
+            <input type="text" id="text-entry-input" class="input-field"
+                maxlength="128" autocomplete="off"/>
+        </div>
+        <div>
+            <button id="text-entry-ok" class="modal-close">OK</button>
+        </div>
+    </div>
+</dialog>
+
+<!-- settings dialog panel -->
+<dialog id="settings" class="modal-dialog">
+    <div id="settings-wrapper" class="modal-dialog-wrapper">
+        <div id="settings-title">
+            Settings
+        </div>
+        <div>
+            Close the color selection dialog when a swatch is...
+        </div>
+        <div class="settings-radios">
+            <input type="radio" id="setting-swatch-single" name="swatch" value="single" required/>
+            <label for="setting-swatch-single">Single-clicked</label>
+            <br/>
+            <input type="radio" id="setting-swatch-double" name="swatch" value="double" required/>
+            <label for="setting-swatch-double">Double-clicked</label>
+        </div>
+        <div>
+            Transfer mode for clippings (copy+paste, text)
+        </div>
+        <div class="settings-radios">
+            <input type="radio" id="setting-xfer-copy" name="xfer-mode" value="copy" required/>
+            <label for="setting-xfer-copy">Copy</label>
+            <br/>
+            <input type="radio" id="setting-xfer-merge" name="xfer-mode" value="merge" required/>
+            <label for="setting-xfer-merge">Merge</label>
+            <br/>
+            <input type="radio" id="setting-xfer-xor" name="xfer-mode" value="xor" required/>
+            <label for="setting-xfer-xor">XOR</label>
+        </div>
+        <div id="settings-ok-w">
+            <button id="settings-ok" class="modal-close">OK</button>
+        </div>
+    </div>
+</dialog>
+
+<!-- about box-->
+<dialog id="about" class="modal-dialog">
+    <div id="about-wrapper" class="modal-dialog-wrapper">
+        <div>
+            <span style="font-size: 80px; color: #11dd00;">H</span><span style="font-size: 80px; color: #dd22dd;">G</span><span style="font-size: 80px; color: #ff6600;">R</span>
+            <span style="font-size: 80px;">&nbsp;</span>
+            <span style="font-size: 80px; color: white;">Tool</span>
+            <br>
+            Version <span id="about-version">?.?</span>
+            <br>
+            Copyright 2025 faddenSoft
+            <br>
+            The project is available on
+            <a href="https://github.com/fadden/HGRTool" target="_blank" class="dark-link">github</a>
+            <hr><br>
+            Legal stuff:
+        </div>
+        <div>
+            <textarea id="about-legal-stuff" placeholder="[loading]" cols="60" rows="10" readonly>
+            </textarea>
+        </div>
+        <div id="about-ok-w">
+            <button id="about-ok" class="modal-close">OK</button>
+        </div>
+    </div>
+ </dialog>
+
+ <dialog id="old-open" class="modal-dialog">
+    <div id="old-open-wrapper" class="modal-dialog-wrapper">
+        <div>
+            Your browser does not support the File System Access API.  Click the
+            button below to open the file selection dialog.  Alternatively, drag
+            and drop files from the filesystem into the center panel.
+        </div>
+        <div>
+            <input type="file" id="old-file-chooser" multiple>
+        </div>
+    </div>
+ </dialog>
+ <dialog id="old-save" class="modal-dialog">
+    <div id="old-save-wrapper" class="modal-dialog-wrapper">
+        <div>
+            Your browser does not support the File System Access API.  Enter a
+            filename below.  (Your browser may choose to ignore it.)
+        </div>
+        <div>
+            <input type="text" id="old-save-name" class="input-field">
+        </div>
+        <div id="old-save-ok-w">
+            <button id="old-save-ok" class="modal-close">OK</button>
+        </div>
+    </div>
+ </dialog>
+
+<!-- snackbar placeholder -->
+<div id="snackbar">Hello, world!</div>
+
+</body>
+</html>

@@ -1,0 +1,41 @@
+/*
+ * Overall look and feel for HGR Tool pages.
+ */
+body {
+    /* Margin is TRBL order. */
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 16px;
+    padding: 0px;
+    margin: 10px 10px 10px 10px;
+    background-color: #ffffff;
+
+    /* max-width: 900px; */
+}
+
+/*
+ * Basic look for all tables.
+ */
+table, th, td {
+    border: 1px solid black;
+    border-collapse: collapse;
+}
+.info-table tr, td {
+    padding: 5px;
+    text-align: left;
+}
+
+#narrow-main {
+    margin-left: 10%;
+    margin-right: 10%;
+}
+
+#masthead {
+    /* background-color: #e0e0e0;
+    color: #101010; */
+    position: relative;
+}
+.masthead-title {
+    font-family: "Segoe UI", Arial, sans-serif;
+    text-align: center;
+    font-weight: bolder;
+}

@@ -1,0 +1,631 @@
+/*
+ * Copyright 2025 faddenSoft
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
+ * Image editor layout and styling.
+ */
+
+* {
+    box-sizing: border-box;
+}
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 16px;
+    padding: 0px;
+    margin: 0px;
+    background-color: #535353;
+    color: #ffffff;
+}
+button {
+    user-select: none;  /* disallow text selection on buttons */
+}
+label {
+    user-select: none;  /* disallow text selection on labels */
+}
+
+/* sampled colors: general background #535353, accent #393939, image surround #282828 */
+
+/*
+ * General layout is a grid with the image in the middle and controls on all four sides.
+ */
+.gridwrapper {
+    display: grid;
+    grid-template-columns: 200px minmax(560px, 1fr) auto;
+    grid-template-rows: auto minmax(384px, 1fr) auto;
+    grid-template-areas:
+        "pgtop pgtop pgtop"
+        "pglft pgmid pgrgt"
+        "pglft pgbot pgrgt";
+    /* gap: 10px; */
+
+    /* fill the browser page */
+    width: 100vw;
+    height: 100vh;
+}
+
+#middle {
+    grid-area: pgmid;
+    /* remove extraneous border pixels so we can resize Canvas to match exactly */
+    margin: 0;
+    padding: 0;
+    border: 0;
+
+    /* maintain general proportions of hi-res screen */
+    /* aspect-ratio: 280 / 192; */
+}
+
+/*
+ * Top bar.
+ *
+ * A single row of action buttons, with a spacer in the middle.
+ */
+#topbar {
+    grid-area: pgtop;
+    margin: 5px 5px 4px 5px;
+    display: grid;
+    grid-template-columns: repeat(5, 80px) 10px repeat(5, 80px);
+    grid-template-areas:
+        "btn btn btn btn btn spacer btn btn btn btn btn";
+}
+
+/*
+ * Right bar.
+ *
+ * Vertical column of thumbnails.
+ */
+#rightbar {
+    grid-area: pgrgt;
+    margin: 0px 5px 5px 4px;
+    display: grid;
+    grid-template-rows: 45px repeat(8, 62px);   /* match to MAX_FILES */
+    grid-template-areas:
+        "header"
+        "pic";
+}
+.right-header {
+    /* center label vertically and horizontally */
+    grid-area: header;
+    height: 45px;
+    line-height: 45px;
+    text-align: center;
+}
+.right-pic {
+    border: 1px solid #282828;
+    border-radius: 5px;
+    padding: 4px;
+    margin: 1px;
+    position: relative;
+}
+.right-pic-tooltip {
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0s;
+    transition-delay: 0.7s;
+
+    position: absolute;
+    width: 120px;
+    right: 100%;
+    z-index: 1;
+    color: #ffffff;
+    background-color: #535353;
+}
+.right-pic:hover {
+    background-color: #535353;
+}
+.right-pic:hover .right-pic-tooltip {
+    visibility: visible;
+    opacity: 1;
+}
+.right-pic.selected {
+    background-color: #5aadb0;
+}
+
+/*
+ * Bottom bar.
+ *
+ * A collection of controls.  The height is defined by the panner box.
+ */
+#bottombar {
+    grid-area: pgbot;
+    margin: 4px 0px 5px 0px;
+    display: grid;
+    grid-template-columns: 150px 250px auto auto 1fr;
+    grid-template-rows: 1fr 1fr;
+    grid-template-areas:
+        "posn rinfo panner color ."
+        "mono scale panner color .";
+    /*align-items: center;        /* center vertically */
+}
+#bottombar > div {
+    border: 1px solid #282828;
+    border-radius: 5px;
+    padding: 4px;
+    margin: 1px;
+}
+#bottom-posn {
+    grid-area: posn;
+}
+#bottom-scale {
+    grid-area: scale;
+}
+#bottom-rinfo {
+    grid-area: rinfo;
+}
+#bottom-mono {
+    grid-area: mono;
+}
+#bottom-panner {
+    grid-area: panner;
+}
+#bottom-color {
+    grid-area: color;
+    display: flex;
+    flex-direction: column;         /* stack vertically */
+    align-items: center;            /* center horizontally */
+}
+
+/*
+ * Left bar.
+ *
+ * Two columns of drawing action buttons.  Tools on top, utilities below.
+ */
+#leftbar {
+    grid-area: pglft;
+    margin: 0px 4px 5px 5px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 45px repeat(5, 60px) 45px repeat(3, 60px);
+    grid-template-areas:
+        "lheader1 lheader1"
+        "btn0 btn1"
+        "btn2 btn3"
+        "btn4 btn5"
+        "btn6 btn7"
+        "btn8 btn9"
+        "lheader2 lheader2"
+        "cfg1 cfg2"
+        "cfg3 cfg4"
+        "cfg5 cfg6";
+}
+.left-header1 {
+    grid-area: lheader1;
+    /* height: 45px; */
+    line-height: 45px;
+    text-align: center;
+}
+.left-header2 {
+    grid-area: lheader2;
+    /* height: 45px; */
+    line-height: 45px;
+    text-align: center;
+}
+.left-spacer {
+    grid-area: spacer;
+    height: 10px;
+}
+.left-spacer hr {
+    border-color: #282828;
+}
+
+/*
+ * Snackbar styling.  The javascript code will add and remove the "show" class.
+ *
+ * This currently shoves the message off the screen as part of making it invisible,
+ * because even when invisible it affects the shape of the cursor.  Other approaches
+ * tend to snap instantly or weirdly.  Not sure if there's a better way.
+ */
+#snackbar {
+    opacity: 0;
+    min-width: 250px;               /* set a default minimum width */
+    background-color: #535353;
+    color: #fff;
+    text-align: center;             /* centered text */
+    transform: translateX(-50%);    /* center horizontally */
+    border-radius: 2px;             /* rounded borders */
+    padding: 16px;
+    position: fixed;                /* sit on top of the screen */
+    z-index: 1;                     /* add a z-index if needed */
+    left: 50%;                      /* center the snackbar */
+    bottom: -100px;                 /* get it off the screen */
+
+    transition: opacity 0.5s, bottom 0.5s;
+}
+#snackbar.show {
+    opacity: 1;
+    bottom: 30px;
+    transition: opacity 0.5s, bottom 0.5s;
+}
+
+/*
+ * Color picker layout.
+ */
+
+#color-picker-wrapper {
+    display: grid;
+    grid-template-columns: auto auto;
+    grid-template-rows: auto auto auto;
+    grid-template-areas:
+        "cplhdr  cprhdr"
+        "cplbody cprbody"
+        "cpclose .";
+    gap: 10px;
+}
+.cpd-color-header {
+    grid-area: cplhdr;
+}
+.cpd-dither-header {
+    grid-area: cprhdr;
+}
+#hgr-color-body {
+    grid-area: cplbody;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(5, 60px);
+    grid-auto-flow: column;
+}
+#hgr-dither-body {
+    grid-area: cprbody;
+    display: grid;
+    grid-template-columns: repeat(11, 1fr);
+    grid-template-rows: repeat(10, 60px);
+    grid-auto-flow: column;
+}
+#hgr-picker-close {
+    grid-area: cpclose;
+}
+
+.swatch-button {
+    display: inline-block;
+    height: 60px;
+    width: 60px;
+    padding: 2px;
+    margin: 0px;
+    border: 0px solid #282828;
+    background: #393939;
+}
+.swatch-button:hover {
+    background-color: #909090;
+}
+.swatch-button:active {
+    background-color: #c0c0c0;
+}
+.swatch-button.selected {
+    background-color: #5aadb0;
+}
+.swatch-canvas {
+    height: 56px;
+    width: 56px;
+}
+
+
+/*
+ * Style picker layout.
+ */
+#style-picker-wrapper {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(2, auto);
+    grid-template-areas:
+        "spthin spthick spsoft"
+        ". spclose .";
+    gap: 10px;
+}
+.style-picker-close-w {
+    grid-area: spclose;
+}
+.style-button {
+    display: inline-block;
+    height: 100px;
+    width: 100px;
+    font-size: 16px;
+    padding: 4px;
+    margin: 1px;
+    background-color: #393939;
+    color: white;
+    border: 1px solid #282828;
+    border-radius: 5px;
+}
+.style-button:hover {
+    background-color: #909090;
+}
+.style-button:active {
+    background-color: #c0c0c0;
+}
+.style-button.selected {
+    background-color: #5aadb0;
+}
+
+/*
+ * Font picker layout.
+ */
+
+#font-picker-wrapper {
+    display: grid;
+    grid-template-columns: repeat(2, auto);
+    grid-template-rows: repeat(4, auto);
+    grid-template-areas:
+        "fp-title   fp-title"
+        "fp-bitsel  fp-bitparm"
+        "fp-browsel fp-browparm"
+        "fp-ok      fp-ok";
+    gap: 10px;
+}
+.fp-title {
+    grid-area: fp-title;
+    margin-bottom: 10px;
+}
+.fp-select-bitmap {
+    grid-area: fp-bitsel;
+}
+.fp-bitmap-params {
+    grid-area: fp-bitparm;
+    margin-top: 45px;
+    margin-left: -25px;
+}
+.fp-select-browser {
+    grid-area: fp-browsel;
+}
+.fp-browser-params {
+    grid-area: fp-browparm;
+    text-align: left;
+}
+.fp-ok {
+    grid-area: fp-ok;
+}
+#fp-font-style {
+    margin-top: 10px;
+}
+#fp-font-family {
+    margin-top: 10px;
+}
+#fp-font-size {
+    margin-top: 10px;
+}
+
+/*
+ * Text entry dialog layout.
+ */
+
+#text-entry-wrapper {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 5px;
+}
+
+/*
+ * Settings dialog layout.
+ */
+
+#settings-wrapper {
+    display: grid;
+    grid-template-columns: 200px auto;
+    grid-template-rows: repeat(4, auto);
+    grid-auto-flow: row;
+    gap: 15px;
+    justify-items: start;   /* aligns blocks of radio buttons */
+    text-align: left;       /* aligns individual radio buttons within blocks */
+}
+#settings-title {
+    grid-row: 1;
+    grid-column: 1 / 3;
+    justify-self: center;
+    margin-bottom: 10px;
+}
+#settings-ok-w {
+    grid-row: 4;
+    grid-column: 1 / 3;
+    justify-self: center;
+    margin-top: 10px;
+}
+
+/*
+ * About box layout.
+ */
+#about-legal-stuff {
+    background-color: #393939;
+    color: white;
+    margin: 10px;
+}
+#about-ok-w {
+    justify-self: center;
+}
+
+/*
+ * Old I/O layout.
+ */
+#old-open-wrapper {
+    text-align: left;
+}
+#old-file-chooser {
+    margin-top: 10px;
+}
+#old-save-wrapper {
+    text-align: left;
+}
+#old-save-name {
+    margin-top: 10px;
+    margin-bottom: 15px;
+    width: 300px;
+}
+
+/*
+ * Assorted styles.
+ */
+
+.modal-dialog {
+    /* put in center of window */
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+
+    background-color: #535353;
+    margin: 0;
+    padding: 0;
+    border: none;
+}
+.modal-dialog::backdrop {
+    background-color: #808080a0;
+}
+.modal-dialog-wrapper {
+    background-color: #393939;
+    color: #ffffff;
+    text-align: center;
+    border: 1px solid #282828;
+    border-radius: 5px;
+    padding: 4px;
+    margin: 1px;
+}
+
+.modal-close {
+    width: fit-content;
+    font-size: 16px;
+    padding: 4px 20px;
+    margin: 1px;
+    background-color: #393939;
+    color: white;
+    border: 1px solid #282828;
+    border-radius: 5px;
+}
+.modal-close:hover {
+    background-color: #909090;
+}
+
+/* text entry fields */
+.input-field {
+    background-color: #393939;
+    color: white;
+}
+
+/* display information in a monospace font */
+.mono-info {
+    font-family: Consolas, monospace;
+}
+
+.dark-link {
+    color: lightblue;
+}
+
+.tool-area {
+    background-color: #393939;
+}
+.tool-area * {
+    background-color: #393939;
+}
+.picture-canvas {
+    cursor: crosshair;
+    background-color: #282828;
+}
+/* the picture edit Canvas fills the center grid */
+#edit-surface {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+#panner {
+    /* size to be proportional to hi-res screen */
+    cursor: grab;
+    display: block;
+    width: 140px;
+    height: 96px;
+    background-color: #282828;
+}
+
+.icon-button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-items: center;
+    gap: 8px;
+
+    padding: 4px;
+    margin: 1px;
+    background-color: #393939;
+    color: white;
+    border: 1px solid #282828;
+    border-radius: 5px;
+
+    position: relative;
+}
+.icon-button-tooltip {
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0s;
+    transition-delay: 0.7s;
+
+    position: absolute;
+    top: 100%;
+    left: 0%;
+    width: 120px;
+    background-color: #535353;
+}
+.icon-button i {
+    font-size: 24px;        /* determines icon size */
+}
+.icon-button:hover {
+    background-color: #535353;
+}
+.icon-button:hover i {
+    background-color: #535353;
+}
+.icon-button:hover .icon-button-tooltip {
+    visibility: visible;
+    opacity: 1;
+}
+.icon-button.selected {
+    background-color: #5aadb0;
+}
+.icon-button.selected i {
+    background-color: #5aadb0;
+}
+.icon-button:active {
+    background-color: #909090;
+}
+.icon-button:active i {
+    background-color: #909090;
+}
+
+.thumbnail-canvas {
+    width: 70px;
+    height: 48px;
+    margin: 1px;
+}
+
+/*
+ * Button that shows the currently-selected color.
+ */
+ #curcolor-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    padding: 1px;
+    margin: 1px;
+    margin-top: 10px;
+    height: 50px;
+    width: 50px;
+}
+#curcolor-canvas {
+    margin: 1px;
+    width: 96%;
+    height: 96%;
+}
+#curcolor-button:hover {
+    background-color: #535353;
+}
+#curcolor-button:active {
+    background-color: #909090;
+}

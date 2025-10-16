@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <link rel="stylesheet" href="main.css"/>
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+
+    <title>HGR Tool</title>
+</head>
+
+<body>
+<div id="narrow-main">
+    <div id="masthead">
+        <div class="masthead-title">
+            <span style="font-size: 80px; color: #11dd00;">H</span><span style="font-size: 80px; color: #dd22dd;">G</span><span style="font-size: 80px; color: #ff6600;">R</span>
+            <span style="font-size: 80px;">&nbsp;</span>
+            <span style="font-size: 80px; color: black;">Tool</span>
+        </div>
+    </div>
+    <hr>
+
+    <p>HGR Tool is an open-source application for working with Apple II
+    graphics files.  It's implemented as a single-page web application,
+    usable in any modern browser (Chrome is recommended).  This is currently
+    an early proof of concept, not a highly-polished product.</p>
+
+    <!-- show a warning to users with sub-optimal browsers -->
+    <p id="io-warning"><strong><span style="color:red;">NOTE:</span></strong>
+    the tool can make use of some newer File System Access API calls when they are
+    available.  Some conveniences, such as saving updates to an image without
+    having to use the file download mechanism, are not available in the browser
+    you're currently using.  For a smoother experience, use Chrome, Edge, or Opera.</p>
+
+    <p>==&gt; <a href="imgedit.html">Run Hi-Res Image Editor</a> &lt;==</p>
+
+    <p>The tool works like other paint programs, but it's often wise to skim the
+    <a href="manual/index.html">documentation</a>.</p>
+
+    <p>Don't have any images handy?  <a href="samples.zip">Download samples</a>.</a></p>
+
+    <p>The source code is available on <a href="https://github.com/fadden/HGRTool">github</a>.</p>
+</div>
+
+<script>
+    if ("showSaveFilePicker" in window) {
+        document.getElementById("io-warning").style.display = "none";
+    }
+</script>
+
+</body>
+</html>

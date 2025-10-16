@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <link rel="stylesheet" href="../main.css"/>
+
+    <title>HGR Tool Manual</title>
+</head>
+
+<body>
+<div id="main">
+    <h1>HGR Tool Manual</h1>
+
+    <p>HGR Tool is a web-based paint program for Apple II hi-res images.
+    It runs entirely in your web browser, with no server-side components.</p>
+
+    <p>The editor should be familiar to anyone who has used a paint program
+    for the Apple II (or any other system).  A large central
+    window holds the image being edited, while various commands and tools can be
+    accessed by clicking icons on the top and sides.  Some information and additional
+    controls are at the bottom.  The right side of the screen has thumbnail views of
+    all open images.</p>
+
+    <h2>Apple II Hi-Res Notes</h2>
+    <p><em>If you're already familiar with the structure of the Apple II hi-res
+    graphics screen, you can skip this section.</em></p>
+    <p>The hi-res screen has an unusual, and probably unique, way of representing
+    colors.  Each pixel on the screen is associated with a single bit, but the
+    color of that pixel depends on the bits that come before it and after it.
+    A bit set in an even column can be blue or violet, while a bit set in an odd
+    column can be orange or green.  If two adjacent bits are set, both will be
+    white.</p>
+    <p>Seven out of the eight bits in each byte map to screen pixels.  The eighth
+    bit, when set, causes the lit pixels to shift half a pixel to the right, which
+    changes violet to blue and green to orange.  This means you can have blue and
+    orange pixels in the same byte, but you can't have blue and green.  Sometimes
+    this can cause "bleeding" effects, e.g. when a purple line is drawn diagonally
+    through an orange square, columns of adjacent orange pixels will turn green.</p>
+    <p>This arrangement means that there are effectively two versions of black and
+    two versions of white.  In summary:</p>
+    <table class="info-table">
+        <tr>
+            <th>State</th>
+            <th>MSB 0</th>
+            <th>MSB 1</th>
+        </tr>
+        <tr><td>bits clear</td>     <td>black0</td>  <td>black1</td> </tr>
+        <tr><td>odd bits set</td>   <td>green</td>   <td>orange</td> </tr>
+        <tr><td>even bits set</td>  <td>violet</td>  <td>blue</td>   </tr>
+        <tr><td>bits set</td>       <td>white0</td>  <td>white1</td> </tr>
+    </table>
+    <p>Hi-res pixels are not quite square.</p>
+
+    <h2>File Access</h2>
+
+    <p>To prevent malware from accessing your system, web browsers don't allow free
+    access to your local filesystem.  Recent browsers provide a system that will let
+    you save changes to a file that you previously opened.  Older browsers, and some
+    newer browsers that don't have the latest features, rely on a more awkward mechanism.</p>
+    <p>A quick way open images is to drag them into the editor, either into the central
+    edit window or onto the thumbnail bar on the right side of the screen.</p>
+
+    <ul>
+        <li><strong>New:</strong> creates a new hi-res image, cleared to black0.</li>
+        <li><strong>Open:</strong> allows you to select one or more files to open.
+        Files that don't appear to be hi-res images are ignored.</li>
+        <li><strong>Save:</strong> saves the current image to the file it came
+        from.  If that isn't possible, this will function like Save As.</li>
+        <li><strong>Save As:</strong> saves the current image to a file you specify.</li>
+        <li><strong>Close:</strong> closes the current image.</li>
+    </ul>
+
+    <h2>Editor Window</h2>
+
+    <p>The center window shows the image being edited.  This is an approximation
+    of the appearance on the high-res screen.  It can be zoomed in and out using
+    the mouse wheel; at higher zoom levels, a grid is overlayed to highlight the
+    position of individual pixel cells.</p>
+    <p>The HGR Tool editor does not show the half-pixel shift, because it makes
+    it harder to identify which pixel you're changing while zoomed in.  Pixels
+    are displayed as squares, which isn't quite accurate.</p>
+
+    <h2>Thumbnails</h2>
+
+    <p>All loaded images are shown in thumbnails on the right side of the screen.
+    Clicking on a thumbnail switches to that image.  When edits are made, the thumbnail
+    will have a red triangle superimposed.</p>
+    <p>The number of images that can be loaded simultaneously is limited.</p>
+
+    <h2>Tools</h2>
+
+    <p>The tool selection determines what happens when you right-click in the edit window.</p>
+    <p>Regardless of the tool setting, when the mouse cursor is in the edit window, the
+    mouse wheel will change the zoom level, and dragging with the right mouse button pressed
+    will pan the image.</p>
+    <ul>
+        <li><strong>Pan:</strong> click &amp; drag to pan the image.  This does nothing
+        if the image fits entirely in the window.  It's most useful when zoomed in.</li>
+        <li><strong>Select:</strong> selects a rectangular area.  This can be used
+        with Cut / Copy / Paste.</li>
+        <li><strong>Scribble:</strong> click to plot a pixel with the current color
+        pattern.  Click and drag to plot continuously.</li>
+        <li><strong>Line:</strong> draws a line.
+        Click to set the start point, then drag and release to set the end point.
+        The line style can be configured.</li>
+        <li><strong>Rect Frame:</strong> draws a rectangular frame.
+        Click to set the first corner, then drag and release to set the second.
+        The line style can be configured.</li>
+        <li><strong>Rect:</strong> draws a filled rectangle.
+        Click to set the first corner, then drag and release to set the second.</li>
+        <li><strong>Ellipse Frame:</strong> draws an ellipse that fills a rectangle.
+        Click to set the first corner, then drag and release to set the second.
+        The line style can be configured.</li>
+        <li><strong>Ellipse:</strong> draws a filled ellipse that fills a rectangle.
+        Click to set the first corner, then drag and release to set the second.</li>
+        <li><strong>Text:</strong> draws a text string.
+        Click to set the top-left corner, then enter the text in the dialog that
+        appears.  The text will be rendered into a clipping, using the current font.
+        The clipping works the same as a copied selection.  When it's in the desired
+        position, hit Enter or use Paste.</li>
+        <li><strong>Fill:</strong> flood-fills the screen at the cursor position.
+        See notes below.</li>
+    </ul>
+
+    <p>The flood fill algorithm reads the current color from the clicked position,
+    and attempts to replace pixels that have the same color with the current color
+    pattern.  It looks at adjacent pixels in the four cardinal directions (N/S/E/W)
+    and spreads, stopping when it encounters a pixel with a different color.  This
+    only works with pure colors, not arbitrary dither patterns, and treats the
+    two varieties of black and white as equivalent.</p>
+    <p>If the screen is being displayed in monochrome mode, the fill will treat
+    the screen appropriately.  Because colors are represented as alternating
+    vertical lines, this can cause colored regions to be filled in with white.</p>
+
+    <h2>Clippings</h2>
+
+    <p>After selecting a rectangular region with the Select tool, you can create a
+    clipping with the <strong>Cut</strong> or <strong>Copy</strong> button.  After
+    you do this, the border will animate, and you will be able to move the
+    clipping around the screen by left-clicking and dragging, or with the arrow keys.
+    You can also create a clipping by creating a text string with the Text tool.</p>
+    <p>If you click the <strong>Paste</strong> button, the clipping will be
+    pasted on the screen at its current position.  You can reposition the clipping
+    and paste it multiple times.  Pressing the Enter key while a clipping is active
+    will paste it and then clear the clipping.</p>
+    <p>If you switch to a different image, the clipping will still be on screen.
+    This can be used to copy portions of one image to another.</p>
+    <p>The clipping can be cleared by hitting Escape or by selecting a
+    different drawing tool.</p>
+
+    <h2>Info &amp; Adjustments</h2>
+
+    <p>A display at the bottom of the screen shows the current cursor position,
+    and, when creating something rectangular, the position and size of the rectangle.</p>
+    <p>The <strong>Monochrome</strong> checkbox controls whether the image is
+    displayed in color or black &amp; white.</p>
+    <p>The <strong>Scale</strong> slider alters the magnification.  This can also
+    be done with the mouse scroll wheel.</p>
+    <p>The scaled-down image at the bottom is the <strong>panner</strong> view.
+    When you zoom in, it lets you see where you are in the image.  Clicking and
+    dragging in the panner window will move the position.</p>
+    <p>The current color <strong>pattern</strong> is shown here as well.  Click
+    on the pattern to open the color chooser.</p>
+
+    <h2>Configuration</h2>
+
+    <p>Below the tools are the configuration buttons.</p>
+    <ul>
+        <li><strong>Choose Color:</strong> opens the color pattern chooser.
+        See notes below.  This only works when an image is open.</li>
+        <li><strong>Choose Font:</strong> opens the font chooser.  You can select
+        the default bitmap font, or a font supported by your web browser.  Browser
+        fonts tend to look bad at smaller point sizes.</li>
+        <li><strong>Line Width:</strong> opens the style chooser.  This allows
+        you to select the line width used for various tools.  The default, "Thick",
+        always sets two adjacent pixels.  "Thin" sets a single pixel, and
+        "Applesoft Thin" draws lines [almost] the same way Applesoft BASIC does.</li>
+        <li><strong>Settings:</strong> configure palette selection behavior and the
+        way clipping Paste operations work.  Settings are stored in your browser's
+        local storage, so they will persist across invocations.</li>
+        <li><strong>About:</strong> some information about the program.</li>
+    </ul>
+
+    <p>The color palette is divided into four sections:</p>
+    <img src="hi-res-palette.png" width="400" height="339" alt="color palette"/>
+    <p>On the left side are the eight solid colors.  Below them are two special
+    "transparent" colors, shown as diagonal gradients, that only affect the MSB
+    when drawn.  For example, you can change an orange &amp; blue design to
+    green &amp; purple by selecting the "MSB off" pattern on the bottom left and
+    drawing over that part of the image with the Rect tool.</p>
+    <p>The dithered palette comes from <em>The Graphics Magician</em>, published
+    for the Apple II by Penguin Software.  The first 52 colors use
+    blended colors, where alternating rows have different values for the MSB.
+    The next 25 have the MSB set, and the last 31 have the MSB clear.  To
+    make it easier to identify the breaks between sections, the
+    first color in each section is white.</p>
+    <p>To avoid horizontal color bleeding effects, use colors from a single
+    section in a given vertical region.</p>
+    <p>The color chooser does model the half-pixel shift for the color swatches,
+    which is why the white square in the top-left corner has a ragged left edge.
+    This is closer to how the pattern will appear on an Apple II or emulator
+    than what the editor shows.</p>
+
+    <h2>Miscellaneous</h2>
+
+    <p>The <strong>Undo</strong> and <strong>Redo</strong> buttons will undo
+    and redo any action that modifies the image.  The number of undoable operations
+    is not limited by anything but your computer's memory.</p>
+</div>
+
+<div id="footer">
+<hr/>
+<p>Copyright 2025 faddenSoft</p>
+</div>
+
+</body>
+</html>

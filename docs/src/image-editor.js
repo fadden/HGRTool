@@ -821,9 +821,6 @@ class ImageEditor {
     }
 
     handleSelectColor() {
-        if (this.currentPicture === undefined) {
-            return;
-        }
         document.getElementById("color-picker-hgr").showModal();
     }
     // Callback function from color picker, and when switching images (because we could

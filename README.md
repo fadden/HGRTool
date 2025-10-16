@@ -2,7 +2,8 @@
 
 This is an image editor for Apple II hi-res graphics.  It operates on saved
 screens, which are about 8KB in size.  The tool is written as a single-page
-web application, so you don't need to download anything to use it.
+web application, so you don't need to download anything to use it.  It runs
+entirely in the local browser, with no server components or cookies.
 
 You can launch the tool by going to https://hgrtool.art/, or (if domain names
 are being weird) https://fadden.github.io/HGRTool.

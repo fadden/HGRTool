@@ -65,6 +65,8 @@ label {
 
     /* maintain general proportions of hi-res screen */
     /* aspect-ratio: 280 / 192; */
+
+    touch-action: pinch-zoom;   /* don't scroll on touch here */
 }
 
 /*
@@ -169,6 +171,7 @@ label {
 }
 #bottom-panner {
     grid-area: panner;
+    touch-action: pinch-zoom;   /* don't scroll on touch here */
 }
 #bottom-color {
     grid-area: color;

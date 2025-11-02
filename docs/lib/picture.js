@@ -603,33 +603,42 @@ export default class Picture {
     }
 
     //
-    // Draws a line the way Applesoft does it.
-    //
-    // TODO(someday): the math doesn't quite match.  The line (0,0)-(279,191) has
-    //   the right overall style but it's stepping at different places.
+    // Draws a line the way Applesoft does it (see HGLIN at $F53A in the Apple ][+ ROM).
     //
     drawLineApplesoft(x0, y0, x1, y1, pat) {
         let deltaX = Math.abs(x1 - x0);
         let moveX = (x0 < x1) ? 1 : -1;
-        let deltaY = -Math.abs(y1 - y0);
+        let deltaY = -Math.abs(y1 - y0) - 1;
         let moveY = (y0 < y1) ? 1: - 1;
-        let error = deltaX + deltaY;
+        let error = deltaX;
+        let count = deltaY - deltaX;
 
-        this.rawImage.setPixel(x0, y0, pat);
+        let mode = "start";     // can't "goto", do this instead
         while (true) {
-            if (x0 == x1 && y0 == y1) {
+            // MOVEX
+            if (mode === "x") {
+                x0 += moveX;
+            }
+            // MOVEX2
+            if (mode === "x" || mode === "start") {
+                error += deltaY + 1;
+            }
+            // LF58B
+            // if (x0 < 0 || x0 >= this.width || y0 < 0 || y0 >= this.height) {
+            //     console.log(`bad coords ${x0},${y0}`);
+            //     break;
+            // }
+            this.rawImage.setPixel(x0, y0, pat);
+            if (++count == 0) {
                 break;
             }
-            let error2 = error * 2;
-            if (error2 >= deltaY) {
-                error += deltaY;
-                x0 += moveX;
-                this.rawImage.setPixel(x0, y0, pat);
-            }
-            if (error2 <= deltaX) {
+            // LF59E
+            if (error < 0) {
+                mode = "y";
                 error += deltaX;
                 y0 += moveY;
-                this.rawImage.setPixel(x0, y0, pat);
+            } else {
+                mode = "x";
             }
         }
     }

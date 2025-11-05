@@ -71,6 +71,8 @@ export default class StdHiRes {
     static NUM_COLS = 280;
     static NUM_COL_BYTES = 280 / 7;
     static NUM_ROWS = 192;
+    static MODE_BYTE_OFFSET = 120;
+    static SIG_BYTE_OFFSET = 121;
 
     // "HGRTool" in ASCII.
     static SIGNATURE = new Uint8Array([0x48, 0x47, 0x52, 0x54, 0x6f, 0x6f, 0x6c]);
@@ -99,9 +101,9 @@ export default class StdHiRes {
             // The file type note for FOT ($08) says the first byte in the first screen hole
             // at +120 (+$78) is reserved for use as a mode byte.  Put our signature into
             // the next seven.
-            this.rawBytes[120] = 1;     // page 1, 280x192 limited color
+            this.rawBytes[StdHiRes.MODE_BYTE_OFFSET] = 1;       // 280x192 limited color, page 1
             for (let i = 0; i < StdHiRes.SIGNATURE.length; i++) {
-                this.rawBytes[121 + i] = StdHiRes.SIGNATURE[i];
+                this.rawBytes[StdHiRes.SIG_BYTE_OFFSET + i] = StdHiRes.SIGNATURE[i];
             }
         } else {
             let size = arrayBuffer.byteLength;
@@ -183,6 +185,23 @@ export default class StdHiRes {
     set rawData(value) { this.rawBytes = value; }
 
     //
+    // True if our signature is detected.
+    //
+    get hasSignature() {
+        for (let i = 0; i < StdHiRes.SIGNATURE.length; i++) {
+            if (this.rawBytes[StdHiRes.SIG_BYTE_OFFSET + i] != StdHiRes.SIGNATURE[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    //
+    // True if the mode byte is present and indicates that the image should be monochrome.
+    //
+    get preferMono() { return this.hasSignature && this.rawBytes[StdHiRes.MODE_BYTE_OFFSET] == 0; }
+
+    //
     // Renders the full image onto an ImageData object.
     //
     //  imageData: ImageData object, must be 280x192
@@ -206,6 +225,14 @@ export default class StdHiRes {
         Debug.assert(StdHiRes.isValidScreenArea(left, top, width, height),
             "invalid args to renderArea()");
         // console.log(`renderArea asMono=${asMono} ${left},${top} ${width}x${height}`);
+
+        // Update the mono/color mode byte now, since we don't get notified before saving.
+        // Don't touch files if our signature isn't present.
+        if (this.hasSignature) {
+            // 280x192 B&W or limited color, page 1
+            this.rawBytes[StdHiRes.MODE_BYTE_OFFSET] = asMono ? 0 : 1;
+        }
+
         let rgbaData = imageData.data;      // Uint8ClampedArray, RGBA order
         if (!asMono) {
                 // Changing a bit can affect the colors of pixels to the immediate left and right.

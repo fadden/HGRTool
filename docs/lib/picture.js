@@ -67,6 +67,7 @@ export default class Picture {
         if (type == StdHiRes.FORMAT_NAME) {
             this.rawImage = new StdHiRes(arrayBuffer);
             this.pixelImage = new ImageData(StdHiRes.NUM_COLS, StdHiRes.NUM_ROWS);
+            this.mUseMono = this.rawImage.preferMono;
         } else {
             throw new Error("unknown type " + type);
         }
@@ -90,8 +91,6 @@ export default class Picture {
         this.mScale = 1;
         this.mScaledCenterX = this.pixelImage.width / 2;
         this.mScaledCenterY = this.pixelImage.height / 2;
-
-        this.mUseMono = false;          // TODO: get from picture metadata, when available
 
         // Generate initial rendering.
         this.render();

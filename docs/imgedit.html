@@ -24,6 +24,10 @@
             <i class="fa-solid fa-upload"></i>Open
             <span class="icon-button-tooltip">Open one or more images.</span>
         </button>
+        <button class="icon-button" id="btn-import">
+            <i class="fa-solid fa-image"></i>Import
+            <span class="icon-button-tooltip">Import image from PNG/JPG/GIF and convert to HGR.</span>
+        </button>
         <button class="icon-button" id="btn-save">
             <i class="fa-solid fa-floppy-disk"></i>Save
             <span class="icon-button-tooltip">Save image (Ctrl+S).</span>
@@ -89,9 +93,14 @@
                 <label for="pictureScaleSlider">scale=</label><output id="pictureScale">1</output>x
             </form>
         </div>
-        <div id="bottom-mono">
-            <input type="checkbox" id="useMono"/>
-            <label for="useMono">Monochrome</label>
+        <div id="bottom-render-mode">
+            Rendering:
+            <input type="radio" id="render-mode-rgb" name="renderMode" value="rgb" checked/>
+            <label for="render-mode-rgb">RGB</label>
+            <input type="radio" id="render-mode-ntsc" name="renderMode" value="ntsc"/>
+            <label for="render-mode-ntsc">NTSC</label>
+            <input type="radio" id="render-mode-mono" name="renderMode" value="mono"/>
+            <label for="render-mode-mono">Mono</label>
         </div>
         <div id="bottom-color">
             Pattern
@@ -326,6 +335,97 @@
         <div id="old-save-ok-w">
             <button id="old-save-ok" class="modal-close">OK</button>
         </div>
+    </div>
+ </dialog>
+
+ <!-- import dialog with preview and NTSC adjustments -->
+ <dialog id="import-dialog" class="modal-dialog">
+    <div class="modal-dialog-wrapper import-dialog-wrapper">
+        <div class="import-dialog-title">Import Image</div>
+
+        <!-- File selection section (shown when no file is loaded) -->
+        <div id="import-file-selection" class="import-file-selection">
+            <div id="import-drop-zone" class="import-drop-zone">
+                <div class="import-drop-zone-content">
+                    <i class="fa-solid fa-file-image"></i>
+                    <p class="import-drop-instructions">Drag image here, paste from clipboard, or click to select</p>
+                    <p class="import-drop-formats">Supports: PNG, JPG, GIF, WEBP</p>
+                </div>
+            </div>
+            <button id="import-select-file" class="modal-action">Select Image File</button>
+        </div>
+
+        <!-- Preview and controls section (shown after file is selected) -->
+        <div id="import-preview-section" class="import-preview-section" style="display: none;">
+            <div class="import-preview-container">
+                <canvas id="import-preview-canvas" width="560" height="192"></canvas>
+                <div id="import-preview-spinner" class="import-preview-spinner" style="display: none;">
+                    <div class="spinner-content">
+                        <div class="spinner-icon"></div>
+                        <div class="spinner-text">Generating preview...</div>
+                        <div class="spinner-percent">0%</div>
+                    </div>
+                </div>
+            </div>
+            <div class="import-controls">
+                <div class="import-control-group">
+                    <label for="import-algorithm">Algorithm:</label>
+                    <select id="import-algorithm" class="import-select">
+                        <option value="hybrid">Hybrid (Recommended)</option>
+                        <option value="viterbi">Viterbi (Best Quality)</option>
+                        <option value="structure-aware">Structure-Aware (Advanced)</option>
+                        <option value="viterbi-byte">Viterbi-Byte (Per-Byte Hybrid)</option>
+                        <option value="two-pass">Two-Pass (NN + Diffusion)</option>
+                        <option value="greedy">Greedy (Fast)</option>
+                        <option value="greedy-parallel">Greedy-Parallel (Async)</option>
+                        <option value="nearest-neighbor">Nearest-Neighbor (Fast)</option>
+                        <option value="threshold">Threshold (Fastest)</option>
+                    </select>
+                </div>
+                <div class="import-control-group">
+                    <label for="import-beam-width">Beam Width: <span id="import-beam-width-value">K=16</span></label>
+                    <input type="range" id="import-beam-width" class="import-slider" min="1" max="256" value="16" step="1">
+                </div>
+                <div class="import-control-group">
+                    <label for="import-hue">NTSC Hue: <span id="import-hue-value">0</span></label>
+                    <input type="range" id="import-hue" class="import-slider" min="-30" max="30" value="0" step="1">
+                </div>
+                <div class="import-control-group">
+                    <label for="import-saturation">Saturation: <span id="import-saturation-value">0</span></label>
+                    <input type="range" id="import-saturation" class="import-slider" min="-50" max="50" value="0" step="1">
+                </div>
+                <div class="import-control-group">
+                    <label for="import-brightness">Brightness: <span id="import-brightness-value">0</span></label>
+                    <input type="range" id="import-brightness" class="import-slider" min="-50" max="50" value="0" step="1">
+                </div>
+                <div class="import-control-group">
+                    <label for="import-contrast">Contrast: <span id="import-contrast-value">0</span></label>
+                    <input type="range" id="import-contrast" class="import-slider" min="-50" max="50" value="0" step="1">
+                </div>
+            </div>
+            <div class="import-buttons">
+                <button id="import-change-file" class="modal-action">Change File</button>
+                <button id="import-convert" class="modal-action">Convert</button>
+                <button id="import-cancel" class="modal-close">Cancel</button>
+            </div>
+        </div>
+
+        <!-- Cancel button for file selection state -->
+        <div id="import-file-selection-buttons" class="import-buttons">
+            <button id="import-cancel-no-file" class="modal-close">Cancel</button>
+        </div>
+    </div>
+ </dialog>
+
+ <!-- progress modal for conversion -->
+ <dialog id="progress-modal" class="modal-dialog">
+    <div class="modal-dialog-wrapper progress-modal-wrapper">
+        <div id="progress-message" class="progress-message">Processing...</div>
+        <div class="progress-bar-container">
+            <div id="progress-bar" class="progress-bar"></div>
+        </div>
+        <div id="progress-percent" class="progress-percent">0%</div>
+        <button id="progress-cancel" class="modal-action">Cancel</button>
     </div>
  </dialog>
 

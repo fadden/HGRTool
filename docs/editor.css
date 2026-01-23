@@ -78,9 +78,9 @@ label {
     grid-area: pgtop;
     margin: 5px 5px 4px 5px;
     display: grid;
-    grid-template-columns: repeat(5, 80px) 10px repeat(5, 80px);
+    grid-template-columns: repeat(6, 80px) 10px repeat(5, 80px);
     grid-template-areas:
-        "btn btn btn btn btn spacer btn btn btn btn btn";
+        "btn btn btn btn btn btn spacer btn btn btn btn btn";
 }
 
 /*
@@ -496,15 +496,19 @@ label {
 .modal-close {
     width: fit-content;
     font-size: 16px;
-    padding: 4px 20px;
+    padding: 6px 24px;
     margin: 1px;
     background-color: #393939;
     color: white;
     border: 1px solid #282828;
     border-radius: 5px;
+    cursor: pointer;
 }
 .modal-close:hover {
-    background-color: #909090;
+    background-color: #606060;
+}
+.modal-close:active {
+    background-color: #707070;
 }
 
 /* text entry fields */
@@ -631,4 +635,281 @@ label {
 }
 #curcolor-button:active {
     background-color: #909090;
+}
+
+/*
+ * Import dialog styles
+ */
+.import-dialog-wrapper {
+    min-width: 320px;
+    padding: 12px;
+}
+
+.import-dialog-title {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 12px;
+}
+
+.import-file-selection {
+    text-align: center;
+    padding: 20px;
+    margin: 12px 0;
+}
+
+.import-file-selection p {
+    margin-bottom: 16px;
+    color: #d0d0d0;
+}
+
+.import-drop-zone {
+    border: 2px dashed #535353;
+    border-radius: 8px;
+    padding: 40px 20px;
+    margin-bottom: 16px;
+    background-color: #282828;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.import-drop-zone:hover {
+    border-color: #909090;
+    background-color: #393939;
+}
+
+.import-drop-zone.drag-over {
+    border-color: #4CAF50;
+    background-color: #2d4a2e;
+    border-style: solid;
+}
+
+.import-drop-zone-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.import-drop-zone-content i {
+    font-size: 48px;
+    color: #909090;
+}
+
+.import-drop-instructions {
+    font-size: 14px;
+    color: #d0d0d0;
+    margin: 0;
+}
+
+.import-drop-formats {
+    font-size: 12px;
+    color: #909090;
+    margin: 0;
+}
+
+.import-preview-section {
+    /* Container for preview and controls */
+}
+
+.import-preview-container {
+    position: relative; /* For absolute positioning of spinner */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 12px;
+    padding: 8px;
+    background-color: #282828;
+    border-radius: 4px;
+}
+
+#import-preview-canvas {
+    border: 1px solid #535353;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    /* Scale down from 560px to 280px for display while maintaining NTSC resolution */
+    width: 280px;
+    height: 192px;
+}
+
+.import-preview-spinner {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 10;
+}
+
+.spinner-content {
+    background-color: rgba(40, 40, 40, 0.95); /* Dark gray, 95% opaque */
+    color: #ffffff; /* White text */
+    border: 2px solid #000000; /* Black border */
+    border-radius: 8px;
+    padding: 16px 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    min-width: 180px;
+}
+
+.spinner-icon {
+    width: 32px;
+    height: 32px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-top-color: #ffffff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.spinner-text {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.spinner-percent {
+    font-size: 16px;
+    font-weight: bold;
+    font-family: 'Courier New', monospace;
+}
+
+.import-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.import-control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    text-align: left;
+}
+
+.import-control-group label {
+    font-size: 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.import-select {
+    width: 100%;
+    padding: 4px 8px;
+    background-color: #282828;
+    color: #ffffff;
+    border: 1px solid #535353;
+    border-radius: 3px;
+    font-size: 14px;
+}
+
+.import-select:hover {
+    background-color: #393939;
+}
+
+.import-select:focus {
+    outline: none;
+    border-color: #909090;
+}
+
+.import-slider {
+    width: 100%;
+    height: 6px;
+    background: #282828;
+    border-radius: 3px;
+    outline: none;
+    -webkit-appearance: none;
+}
+
+.import-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    background: #ffffff;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.import-slider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    background: #ffffff;
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+}
+
+.import-slider:hover::-webkit-slider-thumb {
+    background: #d0d0d0;
+}
+
+.import-slider:hover::-moz-range-thumb {
+    background: #d0d0d0;
+}
+
+.import-buttons {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 12px;
+}
+
+.modal-action {
+    width: fit-content;
+    font-size: 16px;
+    padding: 6px 24px;
+    background-color: #535353;
+    color: white;
+    border: 1px solid #282828;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.modal-action:hover {
+    background-color: #606060;
+}
+
+.modal-action:active {
+    background-color: #707070;
+}
+
+/*
+ * Progress modal styles
+ */
+.progress-modal-wrapper {
+    min-width: 280px;
+    padding: 16px;
+}
+
+.progress-message {
+    font-size: 16px;
+    margin-bottom: 12px;
+}
+
+.progress-bar-container {
+    width: 100%;
+    height: 24px;
+    background-color: #282828;
+    border: 1px solid #535353;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 8px;
+}
+
+.progress-bar {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #11dd00 0%, #22ee11 100%);
+    transition: width 0.2s ease-in-out;
+}
+
+.progress-percent {
+    font-size: 14px;
+    color: #d0d0d0;
+    margin-bottom: 12px;
 }

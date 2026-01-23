@@ -18,12 +18,14 @@ import StdHiRes from "./lib/std-hi-res.js";
 import Picture from "./lib/picture.js";
 import Rect from "./lib/rect.js";
 import Debug from "./lib/debug.js";
+import ImageDither from "./lib/image-dither.js";
 import ColorPickerHgr from "./color-picker-hgr.js";
 import StylePicker from "./style-picker.js";
 import FontPicker from "./font-picker.js";
 import TextEntry from "./text-entry.js";
 import Settings from "./settings.js";
 import About from "./about.js";
+import { ImportDialog } from "./dialogs/import-dialog.js";
 
 //
 // Image editor implementation, tied closely to the HTML page.  Only one instance of this
@@ -70,11 +72,25 @@ class ImageEditor {
     thumbnailContexts = [];
     thumbnailButtons = [];
 
-    // Color/mono checkbox.  We need to maintain our UI element, but the value is
-    // picture-specific.
-    useMonoElem = document.getElementById("useMono");
+    // Rendering mode radio buttons (initialized in constructor)
+    renderRGBElem = undefined;
+    renderNTSCElem = undefined;
+    renderMonoElem = undefined;
 
     constructor() {
+        // Expose for testing
+        window.imageEditor = this;
+
+        // Initialize rendering mode radio button references
+        this.renderRGBElem = document.getElementById("render-mode-rgb");
+        this.renderNTSCElem = document.getElementById("render-mode-ntsc");
+        this.renderMonoElem = document.getElementById("render-mode-mono");
+
+        // Initialize scale-related DOM elements
+        this.scaleElem = document.getElementById("pictureScale");
+        this.scaleSliderElem = document.getElementById("pictureScaleSlider");
+        this.scaleMults = [ 1, 2, 3, 4, 6, 8, 16, 32 ];
+        this.mPictureScaleIndex = 0;
         //
         // Top bar commands.
         //
@@ -82,6 +98,8 @@ class ImageEditor {
             this.handleNew.bind(this));
         document.getElementById("btn-open").addEventListener("click",
             this.handleOpen.bind(this));
+        // NOTE: Import handler registration deferred until after gImportDialog exists
+        // See initializeDeferredHandlers() method
         document.getElementById("btn-save").addEventListener("click",
             this.handleSave.bind(this));
         document.getElementById("btn-save-as").addEventListener("click",
@@ -138,7 +156,9 @@ class ImageEditor {
         //
         // Bottom bar controls.
         //
-        this.useMonoElem.addEventListener("change", this.handleUseMono.bind(this));
+        this.renderRGBElem.addEventListener("change", this.handleRenderModeChange.bind(this));
+        this.renderNTSCElem.addEventListener("change", this.handleRenderModeChange.bind(this));
+        this.renderMonoElem.addEventListener("change", this.handleRenderModeChange.bind(this));
         this.scaleSliderElem.addEventListener("input", this.handleScaleSlider.bind(this));
         document.getElementById("curcolor-button").addEventListener("click",
             this.handleSelectColor.bind(this));
@@ -241,15 +261,40 @@ class ImageEditor {
         this.setOutlineRect(Rect.EMPTY_RECT, false);
 
         console.log("ImageEditor initialized");
+
+        // TEMP DISABLE FOR TESTING
+        // Auto-create blank document if none loaded
+        // if (this.pictureList.length === 0) {
+        //     // Check for edge cases that should skip auto-create
+        //     const hasUrlParams = window.location.search.length > 0;
+
+        //     if (!hasUrlParams) {
+        //         // Use setTimeout to ensure DOM is fully initialized
+        //         setTimeout(() => {
+        //             this.handleNew();
+        //         }, 0);
+        //     }
+        // }
+    }
+
+    /**
+     * Initialize event handlers that depend on global objects.
+     * Must be called after all global dialogs (gSettings, gImportDialog, etc.) are created.
+     * This solves the initialization order problem where handlers reference globals
+     * that don't exist yet during ImageEditor construction.
+     */
+    initializeDeferredHandlers() {
+        // Import button handler depends on gImportDialog existing
+        document.getElementById("btn-import").addEventListener("click",
+            this.handleImportImage.bind(this));
+
+        console.log("Deferred handlers initialized");
     }
 
     //
     // Image scaling.  We use a non-linear fixed set of multipliers.
+    // Initialized in constructor: scaleElem, scaleSliderElem, scaleMults, mPictureScaleIndex
     //
-    scaleElem = document.getElementById("pictureScale");
-    scaleSliderElem = document.getElementById("pictureScaleSlider");
-    scaleMults = [ 1, 2, 3, 4, 6, 8, 16, 32 ];
-    mPictureScaleIndex = 0;
     // Get/set the scale multiplier.  If the multiplier passed to the setter isn't in the
     // multiplier array, we pick the closest.
     get pictureScale() { return this.scaleMults[this.mPictureScaleIndex]; }
@@ -311,14 +356,22 @@ class ImageEditor {
     });
 
     //
-    // Handles change to the "use mono" checkbox.
+    // Handles change to rendering mode radio buttons.
     //
-    handleUseMono(event) {
+    handleRenderModeChange(event) {
+        console.log("🔴 handleRenderModeChange called");
         if (this.currentPicture != undefined) {
-            this.currentPicture.useMono = event.currentTarget.checked;
-            this.currentPicture.render();
+            const mode = event.currentTarget.value;
+            console.log("🔴 Render mode changed to:", mode);
+            console.log("🔴 Before save:", gSettings.renderMode);
+            gSettings.renderMode = mode;
+            console.log("🔴 After save:", gSettings.renderMode);
+            console.log("🔴 localStorage:", localStorage.renderMode);
+            this.currentPicture.render(mode);
             this.drawCurrentPicture();
-            this.onColorChanged();          // redraw color swatch
+            this.onColorChanged();
+        } else {
+            console.log("🔴 No current picture to render");
         }
     }
 
@@ -592,6 +645,73 @@ class ImageEditor {
         document.getElementById("old-open").close();
     }
 
+    /**
+     * Imports a standard image (PNG/JPG/GIF) and converts it to HGR format.
+     */
+    async handleImportImage() {
+        if (this.pictureList.length == this.MAX_FILES) {
+            this.showMessage(`You have ${this.pictureList.length} images open.  Please` +
+                ` close one before importing another.`);
+            return;
+        }
+
+        // Show import dialog first - user will select file from within the dialog
+        window.gImportDialog.show();
+    }
+
+    /**
+     * Convert linear row number (0-191) to Apple II HGR interleaved memory offset.
+     * Apple II HGR memory layout: if row is ABCDEFGH, offset is pppFGHCD EABAB000
+     * @param {number} row - Linear row number (0-191)
+     * @returns {number} - Interleaved memory offset
+     */
+    rowToHgrOffset(row) {
+        const low = ((row & 0xc0) >> 1) | ((row & 0xc0) >> 3) | ((row & 0x08) << 4);
+        const high = ((row & 0x07) << 2) | ((row & 0x30) >> 4);
+        return (high << 8) | low;
+    }
+
+    /**
+     * Create a Picture from linear HGR screen data (called by ImportDialog).
+     * @param {Uint8Array} linearScreenData - Linear HGR screen data (row 0, row 1, etc.)
+     * @param {string} originalFilename - Original image filename
+     */
+    async createPictureFromLinearData(linearScreenData, originalFilename) {
+        // Apple II HGR uses an interleaved scanline layout, not sequential
+        // We need to convert from linear (row 0, row 1, row 2...) to interleaved format
+        // The interleaved format requires 8192 bytes because row offsets go up to ~0x1FF8
+        const interleavedData = new Uint8Array(8192); // Full HGR page size
+        for (let row = 0; row < 192; row++) {
+            const linearOffset = row * 40;
+            const interleavedOffset = this.rowToHgrOffset(row);
+            for (let col = 0; col < 40; col++) {
+                interleavedData[interleavedOffset + col] = linearScreenData[linearOffset + col];
+            }
+        }
+
+        // Create a properly formatted HGR file (8192 bytes)
+        // Use the interleaved data directly as it's already 8192 bytes
+        const hgrData = interleavedData;
+        hgrData[120] = 1; // Mode byte: 1 = color, 0 = mono
+        // Add signature "HGRTool" at offset 121
+        const signature = [0x48, 0x47, 0x52, 0x54, 0x6f, 0x6f, 0x6c];
+        hgrData.set(signature, 121);
+
+        // Create a new picture with the converted data
+        const baseName = originalFilename.replace(/\.[^/.]+$/, ""); // Remove extension
+        const hgrName = `${baseName}.hgr`;
+
+        // Picture constructor: (name, type, fileHandle, arrayBuffer)
+        const picture = new Picture(hgrName, StdHiRes.FORMAT_NAME, undefined, hgrData.buffer);
+
+        // Add to picture list and switch to it
+        this.pictureList.push(picture);
+        this.setInitialScale(picture);
+        this.switchToPicture(picture);
+
+        this.showMessage(`Imported '${originalFilename}' as '${hgrName}'`);
+    }
+
     //
     // Attempts to save the current picture to the file it was loaded from.  If that's not
     // possible, punt to handleSaveAs().
@@ -805,7 +925,7 @@ class ImageEditor {
     handleUndo() {
         this.clearClipping();
         if (this.currentPicture !== undefined) {
-            if (this.currentPicture.undoAction()) {
+            if (this.currentPicture.undoAction(gSettings.renderMode)) {
                 this.drawCurrentPicture();
             }
         }
@@ -814,7 +934,7 @@ class ImageEditor {
     handleRedo() {
         this.clearClipping();
         if (this.currentPicture !== undefined) {
-            if (this.currentPicture.redoAction()) {
+            if (this.currentPicture.redoAction(gSettings.renderMode)) {
                 this.drawCurrentPicture();
             }
         }
@@ -910,7 +1030,7 @@ class ImageEditor {
             if (this.currentPicture.isUndoContextOpen()) {
                 console.log("canceling pending undo action on pic switch");
                 this.currentPicture.closeUndoContext(false);
-                this.currentPicture.renderArea(this.dirtyRect);
+                this.currentPicture.renderArea(this.dirtyRect, gSettings.renderMode);
                 // Redraw so the thumbnail is correct.
                 this.drawCurrentPicture();
             }
@@ -918,7 +1038,18 @@ class ImageEditor {
         this.currentPicture = pic;
         this.colorPicker = gColorPickerHgr;     // this may need to change based on pic type
         this.pictureScale = this.currentPicture.scale;
-        this.useMonoElem.checked = this.currentPicture.useMono;
+
+        // Update radio buttons based on current render mode
+        const mode = gSettings.renderMode;
+        this.renderRGBElem.checked = (mode === 'rgb');
+        this.renderNTSCElem.checked = (mode === 'ntsc');
+        this.renderMonoElem.checked = (mode === 'mono');
+
+        // Apply saved render mode to current picture
+        if (this.currentPicture) {
+            this.currentPicture.render(mode);
+        }
+
         pic.outlineRect = this.outlineRect;     // transfer the outline rect
 
         // If we have a visible clipping, get that set up.
@@ -1059,7 +1190,7 @@ class ImageEditor {
             // re-rendering the area it occupied, and redrawing the scren.
             if (this.currentPicture.isUndoContextOpen()) {
                 this.currentPicture.closeUndoContext(false);
-                this.currentPicture.renderArea(this.dirtyRect);
+                this.currentPicture.renderArea(this.dirtyRect, gSettings.renderMode);
                 this.drawCurrentPicture();
             }
         }
@@ -1073,7 +1204,7 @@ class ImageEditor {
             return;     // no clipping to redraw
         }
         this.currentPicture.revert();
-        this.currentPicture.renderArea(this.dirtyRect);
+        this.currentPicture.renderArea(this.dirtyRect, gSettings.renderMode);
         this.dirtyRect = this.currentPicture.putClipping(this.visClipping,
             this.outlineRect.left, this.outlineRect.top, gSettings.clipXferMode);
         this.drawCurrentPicture();
@@ -1217,7 +1348,7 @@ class ImageEditor {
                 this.currentPicture.openUndoContext("scribble");
                 this.dirtyRect =
                     this.currentPicture.setPixel(picX, picY, this.colorPicker.currentPat);
-                this.currentPicture.renderArea(this.dirtyRect);
+                this.currentPicture.renderArea(this.dirtyRect, gSettings.renderMode);
                 this.drawCurrentPicture();
                 break;
             case "pointermove":
@@ -1264,7 +1395,7 @@ class ImageEditor {
                 }
                 // Erase previous line, draw new.
                 this.currentPicture.revert();
-                this.currentPicture.renderArea(this.dirtyRect);
+                this.currentPicture.renderArea(this.dirtyRect, gSettings.renderMode);
                 this.dirtyRect = this.currentPicture.drawLine(this.startPicX, this.startPicY,
                     picX, picY, this.colorPicker.currentPat, gStylePicker.strokeStyle);
                 this.drawCurrentPicture();
@@ -1312,7 +1443,7 @@ class ImageEditor {
                     break;
                 }
                 this.currentPicture.revert();
-                this.currentPicture.renderArea(this.dirtyRect);
+                this.currentPicture.renderArea(this.dirtyRect, gSettings.renderMode);
                 if (doFill) {
                     this.dirtyRect = this.currentPicture.drawFillRect(
                         this.startPicX, this.startPicY, picX, picY,
@@ -1370,7 +1501,7 @@ class ImageEditor {
                     break;
                 }
                 this.currentPicture.revert();
-                this.currentPicture.renderArea(this.dirtyRect);
+                this.currentPicture.renderArea(this.dirtyRect, gSettings.renderMode);
                 if (doFill) {
                     this.dirtyRect = this.currentPicture.drawFillEllipse(
                         this.startPicX, this.startPicY, picX, picY,
@@ -1744,7 +1875,17 @@ const gTextEntry = new TextEntry(imgEdit);
 
 // Initialize settings dialog.
 const gSettings = new Settings(imgEdit);
+// Expose gSettings to window before creating ImportDialog (which needs it).
+window.gSettings = gSettings;
 // Configure defaults.
 gColorPickerHgr.colorSwatchClose = gSettings.colorSwatchClose;
 
 const gAbout = new About();
+
+// Initialize import dialog (depends on window.gSettings being set).
+const gImportDialog = new ImportDialog(imgEdit);
+// Expose gImportDialog to window for handler access.
+window.gImportDialog = gImportDialog;
+
+// Initialize handlers that depend on globals (must be after all globals created).
+imgEdit.initializeDeferredHandlers();

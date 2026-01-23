@@ -32,6 +32,20 @@ export default class Settings {
     set colorSwatchClose(value) { localStorage.colorSwatchClose = value; }
     get clipXferMode() { return localStorage.clipXferMode; }
     set clipXferMode(value) { localStorage.clipXferMode = value; }
+    get renderMode() { return localStorage.renderMode; }
+    set renderMode(value) { localStorage.renderMode = value; }
+
+    // NTSC adjustment settings for import
+    get ntscHueAdjust() { return parseFloat(localStorage.ntscHueAdjust) || 0; }
+    set ntscHueAdjust(value) { localStorage.ntscHueAdjust = value.toString(); }
+    get ntscBrightnessAdjust() { return parseFloat(localStorage.ntscBrightnessAdjust) || 0; }
+    set ntscBrightnessAdjust(value) { localStorage.ntscBrightnessAdjust = value.toString(); }
+    get ntscContrastAdjust() { return parseFloat(localStorage.ntscContrastAdjust) || 0; }
+    set ntscContrastAdjust(value) { localStorage.ntscContrastAdjust = value.toString(); }
+
+    // Viterbi beam width setting (default K=4)
+    get beamWidth() { return parseInt(localStorage.beamWidth) || 4; }
+    set beamWidth(value) { localStorage.beamWidth = value.toString(); }
 
     constructor(mainObj) {
         if (Settings.isInitialized != false) {
@@ -90,6 +104,11 @@ export default class Settings {
             case Clipping.XFER_XOR:
                 this.xferXORElem.checked = true;
                 break;
+        }
+
+        // Initialize render mode
+        if (!this.renderMode || (this.renderMode !== 'rgb' && this.renderMode !== 'ntsc' && this.renderMode !== 'mono')) {
+            this.renderMode = 'rgb';
         }
 
         Settings.isInitialized = true;

@@ -429,3 +429,9 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# Test output directory
+test-output/
+.ssl/
+playwright-report/
+test-results/

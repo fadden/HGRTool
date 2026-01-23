@@ -59,6 +59,7 @@ important.
 import gColorPalette from "./palette.js";
 import Clipping from "./clipping.js";
 import Debug from "./debug.js";
+import NTSCRenderer from "./ntsc-renderer.js";
 
 //
 // Manage a ~8KB standard hi-res screen.
@@ -204,26 +205,60 @@ export default class StdHiRes {
     //
     // Renders the full image onto an ImageData object.
     //
-    //  imageData: ImageData object, must be 280x192
-    //  asMono: true if we want to render as monochrome
+    //  imageData: ImageData object, must be 280x192 for RGB/mono or 560x192 for NTSC
+    //  renderMode: 'rgb', 'ntsc', or 'mono' (optional, defaults to 'rgb')
     //
-    renderFull(imageData, asMono) {
-        this.renderArea(imageData, asMono, 0, 0, StdHiRes.NUM_COLS, StdHiRes.NUM_ROWS);
+    renderFull(imageData, renderMode = 'rgb') {
+        console.log("🟢 StdHiRes.renderFull() called, renderMode:", renderMode);
+        // Check rendering mode
+        if (renderMode === 'ntsc') {
+            console.log("🟡 Using NTSC renderer for full image");
+            this.renderFullNTSC(imageData);
+            // Debug: Sample a pixel to verify rendering
+            const samplePixel = imageData.data[((50 * imageData.width) + 100) * 4];
+            console.log(`  Sample pixel at (100,50): R=${samplePixel}`);
+        } else if (renderMode === 'mono') {
+            console.log("🟣 Using Mono renderer");
+            this.renderArea(imageData, 'mono', 0, 0, StdHiRes.NUM_COLS, StdHiRes.NUM_ROWS);
+        } else {
+            console.log("🟠 Using RGB renderer");
+            this.renderArea(imageData, 'rgb', 0, 0, StdHiRes.NUM_COLS, StdHiRes.NUM_ROWS);
+        }
+    }
+
+    //
+    // Renders full image using NTSC renderer
+    //
+    renderFullNTSC(imageData) {
+        if (!this.ntscRenderer) {
+            this.ntscRenderer = new NTSCRenderer();
+        }
+        for (let row = 0; row < StdHiRes.NUM_ROWS; row++) {
+            let rowOffset = StdHiRes.rowToOffset(row);
+            this.ntscRenderer.renderHgrScanline(imageData, this.rawBytes, row, rowOffset);
+        }
     }
 
     //
     // Renders an area into an ImageData object.  Use this to re-render a dirty area.
     //
-    //  imageData: ImageData object, must be 280x192
-    //  asMono: true if we want to render as monochrome
+    //  imageData: ImageData object, must be 280x192 for RGB/mono or 560x192 for NTSC
+    //  renderMode: 'rgb', 'ntsc', or 'mono'
     //  left: leftmost column [0,279]
     //  top: top row number [0,191]
     //  width: number of columns [1,280]
     //  height: number of rows [1,192]
     //
-    renderArea(imageData, asMono, left, top, width, height) {
+    renderArea(imageData, renderMode, left, top, width, height) {
+        // Check if we're doing NTSC rendering
+        if (renderMode === 'ntsc') {
+            // For NTSC, just re-render the entire image (simpler for now)
+            this.renderFullNTSC(imageData);
+            return;
+        }
         Debug.assert(StdHiRes.isValidScreenArea(left, top, width, height),
             "invalid args to renderArea()");
+        const asMono = (renderMode === 'mono');
         // console.log(`renderArea asMono=${asMono} ${left},${top} ${width}x${height}`);
 
         // Update the mono/color mode byte now, since we don't get notified before saving.

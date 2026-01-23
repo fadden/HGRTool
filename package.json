@@ -1,7 +1,23 @@
 {
+  "type": "module",
+  "scripts": {
+    "start": "npx http-server docs -p 8080",
+    "dev": "node dev-watch.js",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:debug": "playwright test --debug"
+  },
   "devDependencies": {
     "@eslint/js": "^9.33.0",
+    "@playwright/test": "^1.57.0",
+    "browser-sync": "^3.0.4",
+    "canvas": "^3.2.1",
+    "chokidar": "^4.0.3",
     "eslint": "^9.33.0",
-    "globals": "^16.3.0"
+    "globals": "^16.3.0",
+    "happy-dom": "^20.3.4",
+    "jsdom": "^27.4.0",
+    "pngjs": "^7.0.0",
+    "vitest": "^4.0.17"
   }
 }
